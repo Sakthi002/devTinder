@@ -651,4 +651,31 @@ Flow: Swiggy app (client) → DNS → Nginx (web server) → App server → Data
   });
   ```
   
+  ### Should package-lock.json be added to .gitignore?
+- No. Only `node_modules/` should be ignored. `package-lock.json` must be committed.
+
+### Why
+- node_modules/ → Ignore. It is huge and can be recreated anytime with `npm install`.
+- package.json → Commit. It lists dependencies with version ranges (e.g. `"express": "^4.18.0"`).
+- package-lock.json → Commit. It locks the exact versions of every package, including sub-dependencies.
+
+### What happens without package-lock.json
+- `^4.18.0` means any 4.x version from 4.18.0 upwards.
+- Without a lock file, each install can get a different version:
+  - Developer today → express 4.18.0
+  - Teammate next month → express 4.21.2
+  - Production server → another version
+- This causes "works on my machine" bugs.
+- With package-lock.json committed, everyone installs the exact same versions.
+
+### npm install vs npm ci
+- `npm install` → installs dependencies and can update package-lock.json.
+- `npm ci` → installs exactly what is in package-lock.json, is faster, and fails if package.json and package-lock.json don't match. Best for servers and CI/CD deployments.
+
+### Recommended .gitignore
+```gitignore
+node_modules/
+.env
+```
+- `.env` should also be ignored, because it contains secrets like DB passwords and API keys.
 
