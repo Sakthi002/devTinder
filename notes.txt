@@ -679,3 +679,120 @@ node_modules/
 ```
 - `.env` should also be ignored, because it contains secrets like DB passwords and API keys.
 
+## ROUTING & REQUEST HANDLING
+
+### What is routing?
+- Routing is the process of defining how an application responds to client requests for specific endpoints (URLs) and HTTP methods (GET, POST, PUT, PATCH, DELETE).
+- In Express.js, routing is handled using route handlers: functions that run when a request matches a specific route and method.
+- Example:
+```js
+app.get('/users', (req, res) => {
+  res.send('Get all users');
+});
+app.post('/users', (req, res) => {
+  res.send('Create a new user');
+});
+```
+
+### What is a route handler?
+- A route handler is a function that runs when a request matches a specific route and HTTP method.
+- It receives `req` (request object), `res` (response object), and optionally `next` (a function that passes control to the next handler/middleware).
+- Example:
+```js
+app.get('/users', (req, res) => {
+  res.send('Get all users');
+});
+```
+- Here, `(req, res) => { res.send('Get all users'); }` is the route handler for GET requests to `/users`.
+
+### What is req and res?
+- `req` (request): represents the HTTP request from the client. Contains the URL, HTTP method, headers, route params, query params and body data.
+- `res` (response): represents the HTTP response sent back to the client. Provides methods to set the status code and headers, and to send data.
+- Common res methods:
+  - `res.send()` → sends text/HTML/any data
+  - `res.json()` → sends JSON (sets Content-Type automatically)
+  - `res.status(code)` → sets the status code (chainable: `res.status(201).json(...)`)
+- Example:
+```js
+app.get('/users', (req, res) => {
+  console.log(req.query);                            // query parameters
+  res.status(200).json({ message: 'Get all users' });
+});
+app.post('/users', (req, res) => {
+  console.log(req.body);                             // request body data
+  res.status(201).json({ message: 'Create a new user' });
+});
+```
+
+### What is req.params, req.query and req.body?
+- `req.params`: route parameters, the dynamic segments of the URL. In `/users/:id`, a request to `/users/5` gives `req.params.id = '5'`.
+- `req.query`: query parameters after `?` in the URL. In `/users?city=Hosur&page=2`, `req.query.city = 'Hosur'` and `req.query.page = '2'`.
+- `req.body`: data sent in the request body, used with POST, PUT and PATCH. Requires body-parsing middleware:
+  - `express.json()` → for JSON bodies
+  - `express.urlencoded({ extended: true })` → for HTML form data
+  - Without it, `req.body` is `undefined`.
+- Values in req.params and req.query are always strings. Convert when needed: `Number(req.query.page)`.
+- Example:
+```js
+app.use(express.json()); // required to read req.body
+
+// GET /users/5?city=Hosur
+app.get('/users/:id', (req, res) => {
+  console.log(req.params.id);   // '5'
+  console.log(req.query.city);  // 'Hosur'
+  res.send('User details');
+});
+
+// POST /users  with body { "name": "Sakthi" }
+app.post('/users', (req, res) => {
+  console.log(req.body);        // { name: 'Sakthi' }
+  res.status(201).send('User created');
+});
+```
+
+### Important rules
+- Send only one response per request. Calling res.send/res.json twice causes the error: "Cannot set headers after they are sent to the client". Use `return res.json(...)` when sending early.
+```js
+app.get('/users/:id', (req, res) => {
+  if (!req.params.id) return res.status(400).send('ID required'); // return stops further code
+  res.send('User found');
+});
+```
+- Route order matters: Express checks routes top to bottom and uses the first match.
+```js
+app.get('/users/new', ...);  // must come BEFORE /users/:id
+app.get('/users/:id', ...);  // otherwise 'new' would be treated as an id
+```
+
+### express.Router (organizing routes)
+- Used to group related routes into separate files.
+```js
+// routes/users.js
+const router = require('express').Router();
+router.get('/', (req, res) => res.send('All users'));      // GET /users
+router.get('/:id', (req, res) => res.send('One user'));    // GET /users/:id
+module.exports = router;
+
+// app.js
+app.use('/users', require('./routes/users'));
+```
+
+### Route patterns (?, +, *, (), regex)
+- Express 4 supports special characters in route strings:
+  - `?` → previous character is optional: `/ab?cd` matches /acd, /abcd
+  - `+` → previous character one or more times: `/ab+cd` matches /abcd, /abbbcd
+  - `*` → any characters: `/ab*cd` matches /abcd, /abxyzcd
+  - `()` → group, often with ?: `/ab(cd)?e` matches /abe, /abcde
+  - Param regex: `/users/:id(\\d+)` → id must be digits
+- Express 5 (current default) removed ?, +, *, () from route strings; using them throws an error.
+  - Optional part → `{}`: `/users{/:id}` matches /users and /users/5
+  - Wildcard → named: `/files/*path` → req.params.path is an array of segments
+  - + and param regex → not supported; use a regex route or validate in the handler
+- Regex routes work in both versions (pass a RegExp, not a string):
+```js
+app.get(/.*fly$/, (req, res) => res.send('Ends with fly'));       // /butterfly, /dragonfly
+app.get(/^\/users\/(\d+)$/, (req, res) => res.send(req.params[0])); // /users/5 → '5'
+```
+- Check the installed version with: `npm list express`
+
+
