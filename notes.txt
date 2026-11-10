@@ -886,3 +886,37 @@ app.get('/profile', checkAuth, (req, res) => res.send('Profile data'));
   - Runs for all HTTP methods (GET, POST, PUT, DELETE) but only for the exact specified path.
   - Commonly used for defining a single handler that should respond to all methods on a specific route.
   - Example: `app.all('/status', (req, res) => res.send('Server is running'))` → responds to GET /status, POST /status
+
+### Error handling
+  - In Express, error-handling middleware is defined with four parameters: `(err, req, res, next)`.
+  - It is used to catch errors that occur in route handlers or other middleware.
+  - To trigger the error handler, call `next(err)` with an error object.
+  - Example:
+  ```js
+  app.get('/user', (req, res, next) => {
+    if (!req.query.id) return next(new Error('ID required'));
+    res.send('User found');
+  });
+
+  // Error handler: must be defined after all routes
+  app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(400).json({ error: err.message });
+  });
+  ```
+  - We can use try-catch blocks in async route handlers to catch errors and pass them to next(err):
+  ```js
+  app.get('/async', async (req, res, next) => {
+    try {
+      const data = await someAsyncFunction();
+      res.json(data);
+    } catch (err) {
+      next(err); // pass error to error handler
+    }
+  });
+
+  app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Something went wrong!' });
+  });
+  ```
