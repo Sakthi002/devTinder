@@ -1,0 +1,654 @@
+# Nodejs Notes
+
+### What is nodejs?
+- Nodejs is an open-source, cross-platform Javscript runtime environment that can run on windows, macOS, Linux and much more. 
+- Nodejs runs on V8 Javscript engine and executes JS code outside of web browser.
+
+### Importance of  JS Engine?
+- Wherever is javascript there will be a javascript engine. Without JS engine, JS code cannot be executed.
+
+### What is server?
+- A Server is computer(physical or virtual) that works remotely and provides services to other computers.
+- Running a website on a server means hosting the website/app on another computer(physical server or cloud infrastructure).
+- A server listens for a requests coming from clients
+- It processes those requests and sends appropriate responses.
+- Multiple clients can communicate with the same server simultaneously.
+- *** A server is not necessarily a physical computer. It can also be a virtual machine running on a physical computer ***
+
+### What is V8?
+- V8 is a google's open source high-performance JS Engine written C++.
+- V8 can be embedded into any C++ application.
+- Job of V8 is Execute Javascript Code
+- JS code ------> V8 (read by C++) --------> Converted to Machine Learning Language
+
+### What is ECMAScript?
+- ECMAScript is a standard which is followed by Javascript.
+
+### What is NODE.JS now?
+- Node.js is a C++ application with V8 embedded into it
+
+### If JS Engine able to execute JS code why do we need Nodejs?
+- A JavaScript engine (V8) is responsible for executing JavaScript code.
+- Node.js provide a runtime environment with additional API's and capabilites to execute Javascript outside browser.
+- These API's allows Javascript to interact with the filesystem, network, HTTP servers, databases through libraries...
+
+- ## V8 = Executes Javascript
+- ## Nodejs = Provides runtime environment and additional capabilities (V8 + API's + Components)
+
+### JS Engine and JS Runtime Environment
+- JS Engine - executes Javascript (V8)
+- JS Runtime - Provides an environment to execute javascript
+
+### Why do we need NodeJS?
+- It provides env for execute JS
+- Importantly if we want to execute JS without using browser we need NodeJS
+
+### Node REPL
+- REPL means Read Evaluate Print Loop
+- REPL is a simple, interactive computer programming environment that takes single user inputs, executes them, and returns the result to the user.
+
+### What is NPM?
+- NPM is a package manager for Node.js packages, or modules if you like.
+
+### What is package manager?
+- A package manager is a collection of software tools that automates the process of installing, upgrading
+, configuring, and removing computer programs for a computer's operating system in a consistent manner.
+
+### What is package?
+- A package is a collection of files and folders that are bundled together to provide specific functionality or features to a software application. 
+- In the context of Node.js, a package is typically a module or library that can be installed and used in a Node.js application. 
+- Packages can include code, configuration files, documentation, and other resources that are necessary for the package to function properly. Packages can be published to a package registry, such as npm, and can be installed and used by other developers in their own applications. 
+- Packages can be created by anyone and can be open-source or proprietary.
+
+### global and globalThis
+- `global` is an object that provides a way to access global variables and functions
+- `globalThis` is a standardized way to access the global object in JavaScript, regardless of the environment (browser or Node.js). It was introduced in ECMAScript 2020 and provides a consistent way to access the global object across different JavaScript environments.
+
+## MODULE.EXPORTS and REQUIRE
+
+### what is module?
+- A module is a reusable block of code that encapsulates related functionality and can be imported and used in other parts of an application.
+
+### what is require?
+- `require` is a built-in function in Node.js that allows you to import modules
+- modules are protects thier properties and methods from being accessed by other modules.
+- If we want to use a module properties in another module we need to export those using `module.exports` and import them using `require`.
+
+### what is module.exports?
+- It is an empty object by default. We can assign any value to it and that value will be exported from the module.
+- `module.exports` is a special object in Node.js that is used to define what a module exports and makes available to other modules that require it. 
+- It allows you to define the public API of a module, which can include functions, objects, or any other values that you want to expose to other modules. 
+- When another module requires your module, it will receive the value assigned to `module.exports`, which can then be used in that module.
+
+### commonjs(cjs) and es modules(mjs)
+- CommonJS (CJS) is a module system used in Node.js that allows you to define and export modules using the `module.exports` syntax. 
+- It is synchronous and designed for server-side applications.
+- non-strict mode
+
+- ES Modules (ESM) is a module system introduced in ECMAScript 2015 (ES6) that allows you to define and export modules using the `export` and `import` syntax. 
+- It is asynchronous and designed for both client-side and server-side applications.
+- strict mode
+
+### What happens when we require a module?
+- All the code inside the module is wrapped inside a function(IIFE)
+- Because of this all the variables and functions defined inside a module are scoped to that module and are not accessible outside of it.
+
+### What is IIFE?
+- IIFE stands for Immediately Invoked Function Expression. It is a JavaScript function that is defined and immediately executed.
+- Keeps the variables and functions defined inside it scoped to that function and not accessible outside of it.
+
+### How are variables and functions are private in different modules?
+- Because of IIFE all the variables and functions defined inside a module are scoped to that module.
+
+### How do you get access to module.exports?
+- Nodejs passes the module.exports object as an argument to the IIFE and we can access it inside the module using `module.exports` or `exports` variable.
+
+### 5 steps mechanism of require('/path/to/module')
+- 1. Resolving the module path - localpath. json, or node:module
+- 2. Loading the module - file content is loading based on file type (.js, .json, .node)
+- 3. Wrapping the module code inside IIFE - (function(exports, require, module, __filename, __dirname) { // module code })
+- 4. Executing the module code - the code inside the IIFE is executed and the module.exports object is populated with the exported values and returned to the caller.
+- 5. Caching the module - the module.exports object is cached and returned to the caller. If the same module is required again, the cached version is returned instead of re-executing the module code.
+
+## LIBUV & ASYNC IO 
+
+### Difference between synchronous and asynchronous programming?
+- Synchronous programming is a programming paradigm where the code is executed sequentially, one statement at a time. 
+- Each statement must complete before the next one can begin, which can lead to blocking and delays in the execution of the program. 
+- In synchronous programming, if a statement takes a long time to execute, it can block the execution of the entire program, leading to poor performance and responsiveness.
+
+- Asynchronous programming, on the other hand, is a programming paradigm where the code can be executed concurrently, allowing multiple statements to be executed at the same time.
+- In asynchronous programming, when a statement is executed, it can continue to execute other statements while waiting for the result of the first statement to be returned. 
+- This allows for non-blocking and more efficient execution of code, as it can handle multiple tasks simultaneously without waiting for each one to complete before moving on to the next. 
+- Asynchronous programming is often used in situations where I/O operations are involved, such as reading from a file or making a network request, as these operations can take a long time to complete and can block the execution of the program if done synchronously.
+
+### How JSEngine works?
+- JSEngine is single threaded and it can only execute one task at a time.
+- It has a call stack, memory heap, garbage collector and event loop.
+- Call stack - is responsible for code execution. It keeps track of the function calls and their execution context.
+- Memory heap - is responsible for memory allocation. It keeps track of the memory used by the program and frees up memory that is no longer needed.
+- Garbage collector - is responsible for cleaning up memory that is no longer needed. It runs periodically and frees up memory that is no longer referenced by the program.
+- Event loop - is responsible for handling asynchronous tasks. It keeps track of the tasks that are waiting to be executed and executes them when the call stack is empty.
+
+### How does JSEngine handle asynchronous tasks?
+- When an asynchronous task is encountered, it is offloaded to the event loop, which handles the task in the background. 
+
+### What is libuv?
+- It provides an event-driven architecture and a thread pool, which allows Node.js to perform non-blocking I/O operations.
+
+#### How does libuv work?
+- When an asynchronous task is encountered, it is offloaded to the libuv thread pool, which handles the task in the background. 
+- Once the task is complete, libuv notifies the event loop, which then executes the callback function associated with the task.
+
+### What is non-blocking I/O?
+- Non-blocking I/O is a programming paradigm that allows a program to initiate an I/O operation and continue executing other code while waiting for the I/O operation to complete. 
+- In non-blocking I/O, the program does not wait for the I/O operation to complete before moving on to the next task. Instead, it registers a callback function that will be executed when the I/O operation is complete. This allows for more efficient use of system resources and can improve the performance of applications that require I/O operations, such as web servers or database applications. Non-blocking I/O is often used in event-driven programming models, where multiple tasks can be executed concurrently without blocking the main thread of execution.
+
+### Difference between fs.readFileSync() and fs.readFile()
+- `fs.readFileSync()` is a synchronous method that reads the contents of a file and returns the data as a buffer or string. 
+- It blocks the execution of the program until the file is read completely, which can lead to performance issues if the file is large or if there are many concurrent requests.
+
+- `fs.readFile()` is an asynchronous method that reads the contents of a file and returns the data through a callback function.
+- It does not block the execution of the program and allows other code to run while the file is being read. This can improve the performance of applications that require I/O operations, as it allows for more efficient use of system resources and can handle multiple requests concurrently.
+
+## ***** SYNCHRONOUS FUNCTIONS WILL BLOCK THE MAIN THREAD *****
+
+### Types of programming languages
+- #### Compiled Languages
+  - Code translated into machine code before execution
+  - Initialy heavy but faster execution
+  - Examples: C, C++, Rust, Go, Java, Kotlin, Swift
+- #### Interpreted Languages
+  - Code executed line by line at runtime
+  - Fast to start but slower execution
+  - Examples: Python, Ruby, PHP
+- #### Just-In-Time (JIT) Compiled Languages
+    - Code compiled into machine code at runtime, just before execution
+    - Examples: JavaScript (V8 engine), Java (HotSpot JVM), C# (CLR)
+
+### Javascript is compiled or interpreted?
+- Javascript is a Just-In-Time (JIT) compiled language.
+- AST generated from the source code
+- Then the AST given to Ignition interpreter which generates bytecode
+- From the AST if any code is hot(can optimized) then it is given to TurboFan compiler which generates optimized machine code.
+- Execution of the code
+- TurboFan compiler makes assumptions about the code and optimize it, but if the assumptions are wrong then it deoptimizes the code and gives it back to Ignition interpreter which generates bytecode again.
+- In case of Interpreted languages, the code is executed line by line at runtime, while in compiled languages, the code is translated into machine code before execution.
+
+## EVENT LOOP
+### What is event loop?
+- Event loop is a mechanism that coordinates the execution of synchronous code and asynchronous callbacks.
+- It allows Node.js to perform non-blocking I/O operations by offloading tasks to the event loop and executing them when the call stack is empty.
+- JavaScript executes code on single main thread, event loop helps it to handle async operations without blocking the main thread.
+
+### How event loop works differently in browser and nodejs?
+- Both use event loop to hanlde async operations, but they have different implementations and APIs.
+- In browser, event loop is implemented by the browser itself and it uses the Web APIs provided by the browser to handle async operations. The event loop in the browser is responsible for handling user interactions, rendering, and other browser-specific tasks.
+- In Node.js, event loop is implemented by the libuv library and it uses the Node.js APIs to handle async operations. The event loop in Node.js is responsible for handling I/O operations, timers, and other Node.js-specific tasks.
+
+### What is callstack?
+- Call stack is a data structure that keeps track of functions currently being executed in a program.
+- It follows LIFO (Last In First Out) principle, where the last function called is the first one to be executed.
+- When a function is called, it is added to the top of the call stack
+- When the function completes its execution, it is removed from the top of the call stack.
+
+### How event loop works in browser?
+- The event loop in the browser is responsible for handling asynchronous tasks and executing them when the call stack is empty.
+- When running a program if any async task is encountered, it is offloaded to the Web APIs provided by the browser, which handles the task in the background.
+- Once the task is complete, the Web APIs notify the event loop, which then executes the callback function associated with the task.
+- The event loop continuously checks the call stack and the task queue
+- If the call stack is empty, it takes the first task from the task queue and pushes it onto the call stack for execution.
+- This process continues until all tasks in the task queue have been executed.
+- There are two types of task queues in the browser: the macro task queue and the micro task queue.
+- The macro task queue is used for tasks that are scheduled to run after the current event loop iteration, such as setTimeout and setInterval callbacks. 
+- The micro task queue is used for tasks that are scheduled to run before the next event loop iteration, such as Promise callbacks and MutationObserver callbacks.
+
+### How event loop works in nodejs?
+- The event loop in Node.js is responsible for handling asynchronous tasks and executing their callbacks when the call stack is empty.
+- When running a program, any async task encountered is offloaded to libuv. 
+- Network I/O is handled by the OS's async mechanisms (epoll/kqueue/IOCP), while fs, dns.lookup, crypto and zlib run on libuv's thread pool (default 4 threads). 
+- Timers are tracked by libuv itself.
+- First, the main script runs synchronously to completion.
+- Then, before the event loop starts, the microtask queues are drained: the process.nextTick() queue first, then the Promise queue.
+- The event loop has 6 phases: timers, pending callbacks, idle/prepare (internal), poll, check and close callbacks.
+- In the timers phase, it executes callbacks of expired setTimeout() and setInterval() timers.
+- In the pending callbacks phase, it executes I/O callbacks deferred from the previous loop iteration (e.g. some TCP errors).
+- In the poll phase, it retrieves new I/O events and executes their callbacks. If there are none, it waits for new events, but only if no setImmediate() is queued and no timer is due. Otherwise it moves on (or waits only until the nearest timer expires).
+- In the check phase, it executes callbacks scheduled by setImmediate().
+- In the close phase, it executes close callbacks, e.g. socket.on('close').
+- Since Node 11, after every individual callback in any phase, the process.nextTick() queue is drained fully, followed by the Promise queue. process.nextTick() always has priority over Promises.
+- This process continues until there are no active ref'd handles or requests left (timers, sockets, servers, pending fs operations). Calling unref() on a handle stops it from keeping the loop alive.
+
+### What happens when callstack and event loop are empty?
+- If there are still pending tasks (active server, pending timers, ongoing I/O like file reads or DB queries):
+  - The event loop waits in the poll phase for new events.
+  - If a timer is pending, it waits only until that timer is due, then goes to the timers phase.
+- If nothing is pending (no active handles or requests):
+  - The event loop stops and the Node.js process exits.
+  - Before exiting, Node emits the 'beforeExit' event, then the 'exit' event.
+- Example: an HTTP server never exits because it keeps listening for requests. A script with only console.log exits immediately.
+
+### What is process.nextTick()?
+- `process.nextTick(fn)` is a method in Node.js that schedules a callback to run immediately after the current code (the sync code running right now) finishes, before the event loop continues.
+- It runs before Promise callbacks, timers (setTimeout), setImmediate and I/O callbacks.
+#### Use
+- To let the caller finish its setup before your code runs, e.g. emitting an event from a constructor after listeners are attached:
+  `process.nextTick(() => this.emit('ready'))`
+- To make a function always async, so callers get predictable ordering.
+#### Caution
+- Calling nextTick recursively blocks the event loop, so I/O and timers never run.
+- For general use, prefer Promises / queueMicrotask(). Use setImmediate() to yield to I/O.
+
+### What is setImmediate()?
+- `setImmediate(fn)` is a method in Node.js that schedules a callback to run in the check phase of the event loop, which comes right after the poll (I/O) phase.
+- It runs after the current code, nextTick and Promise callbacks finish.
+
+## *** After every callback, Node executes the nextTick queue, then the Promise queue, before running the next callback ***
+
+# HOW ASYNC TASKS ARE HANDLED
+
+- When an async task is encountered:
+  - process.nextTick() → goes to the nextTick queue (runs first).
+  - Promises → go to the Promise (microtask) queue (runs after the nextTick queue).
+  - setTimeout(), setInterval() and setImmediate() → libuv tracks them and executes their callbacks in the appropriate phase (timers / check).
+  - fs, dns.lookup, crypto and zlib → libuv offloads them to its thread pool. A thread does the work (asks the OS to do it, or does it itself), then libuv schedules the callback to run in the poll phase.
+  - Network I/O → handled by the OS's async mechanisms (epoll/kqueue/IOCP), so no thread pool is needed. The OS notifies libuv when data arrives, and the callback runs in the poll phase.
+- Once the task is done, its callback is added to the queue of its phase.
+- The event loop picks up the callback and executes it on the main thread when the call stack is empty.
+
+### What is a thread pool?
+- A thread pool is a fixed set of pre-created threads that are reused to perform tasks concurrently, instead of creating a new thread for every task.
+- If all threads are busy, new tasks wait in a queue until a thread is free.
+- By default, libuv's thread pool has 4 threads.
+- The size can be changed:
+  - When starting Node (recommended): `UV_THREADPOOL_SIZE=8 node app.js`
+  - In code: `process.env.UV_THREADPOOL_SIZE = 8;` (only works at the very top of the entry file, before any fs/crypto/zlib/dns call)
+
+### Is nodejs single threaded or multi-threaded?
+- It depends
+- Node.js is single-threaded for executing JavaScript code (the main thread), 
+- but it uses a multi-threaded architecture for handling asynchronous I/O operations through libuv's thread pool and the OS's async mechanisms.
+
+# ****** SERVER ******
+
+### Difference between software and application?
+- Software is a general term that refers to any set of instructions or programs that tell a computer how to perform specific tasks. It can include operating systems, utilities, and applications.
+- An application, on the other hand, is a specific type of software that is designed to perform a particular function or set of functions for the user. Applications are typically more focused and user-oriented, providing a specific service or functionality, such as word processing, web browsing, or gaming.
+- Examples for software: Operating systems (Windows, macOS, Linux), Utilities (antivirus software, disk cleanup tools), Programming languages and compilers (Python, Java, C++)
+- Examples for application: Web browsers (Google Chrome, Mozilla Firefox), Office suites (Microsoft Office, Google Workspace), Media players (VLC Media Player, Spotify), Games (Fortnite, Minecraft)
+
+### What is a server?
+- A server is something that serves data or services to others (clients) over a network.
+- The term refers to two things:
+  - Hardware: a machine (physical or virtual/cloud) with CPU, RAM and storage (SSD/HDD) that runs 24/7.
+  - Software: a program running on that machine that listens for requests and sends responses.
+
+### Client-server model
+- Client = the one who ASKS (sends a request). Example: browser, mobile app, Postman.
+- Server = the one who ANSWERS (receives the request, processes it and sends a response). Example: a backend app returning data.
+- Client and server are roles, not machine types: the same app can be a server for one request and a client for another (e.g. a backend answers a mobile app as a server, but acts as a client when it calls the database or a payment API).
+
+### Real example: ordering food on Swiggy
+1. You open the Swiggy app and tap "Show restaurants near me" → the app (client) sends a request.
+2. The request goes to https://api.swiggy.com/restaurants over HTTPS.
+3. DNS converts api.swiggy.com into an IP address.
+4. The request reaches Swiggy's machine (server hardware) on port 443.
+5. Nginx (web server) receives it and forwards it to the app server.
+6. The app server (backend code) runs the logic: find restaurants near this location.
+7. The app server asks the database server for the data (here the app server acts as a client).
+8. The database returns the data; the app server sends it back as a JSON response.
+9. The Swiggy app shows the restaurant list.
+
+Flow: Swiggy app (client) → DNS → Nginx (web server) → App server → Database → response back to app
+
+### How clients reach a server
+- Clients reach a server using IP address + port (e.g. 192.168.1.10:3000).
+- Domain names (e.g. swiggy.com) are converted to IP addresses by DNS.
+- Server software listens on a port (e.g. 80 for HTTP, 443 for HTTPS, 3000 for local dev).
+- Client and server communicate using a protocol, commonly HTTP/HTTPS.
+
+### Examples
+- Server software: Nginx, Apache, or a Node.js program using http.createServer / Express (Node.js itself is a runtime, not a server).
+- Types of servers: web server (Nginx, Apache), application server (Node.js app), database server (MySQL, MongoDB), file server, mail server.
+- Any computer can act as a server; running `node app.js` on your laptop makes it a server if the app listens on a port.
+
+### Who is a client?
+- A client is a program or device that sends a request to a server and waits for a response. Example: browser, mobile app, Postman.
+- When a client sends a request to a server:
+  - A socket connection is created between them.
+  - The server processes the request and sends the response back.
+  - The connection is closed, or kept open and reused for more requests (HTTP keep-alive).
+- The socket uses TCP/IP to send and receive data.
+
+### Protocol
+- A protocol is a set of rules for how data is sent and received: a common language that both client and server understand.
+
+### TCP/IP
+- IP (Internet Protocol): gives every device an address and routes data to the right device.
+  - Devices on a home/office network have private IPs (e.g. 192.168.1.5) and share one public IP through the router.
+- TCP (Transmission Control Protocol): splits data into packets and delivers them reliably and in order. Lost packets are resent.
+- TCP/IP only moves data between devices. It does not know what the data means.
+
+### Application protocols (HTTP, FTP, SMTP)
+- Since TCP/IP only carries data, client and server need another set of rules to understand the data. These are application protocols.
+- They run on top of TCP/IP:
+  - IP → finds the device (address)
+  - TCP → delivers the data reliably
+  - HTTP / FTP / SMTP → defines what the data means
+- Analogy: TCP/IP is the phone line; HTTP/FTP/SMTP is the language spoken on the call. Both sides must speak the same language.
+- Each protocol is designed for a specific job:
+  - HTTP (port 80) / HTTPS (port 443): websites and APIs (GET, POST, status codes like 200, 404)
+  - FTP (port 21): file transfer (login, upload, download)
+  - SMTP (port 25 / 587): sending emails (sender, receiver, message)
+- Example HTTP request sent over TCP:
+    GET /restaurants HTTP/1.1
+    Host: api.swiggy.com
+
+### DNS (Domain Name System)
+- Computers find each other using IP addresses (e.g. 142.250.183.14), but humans use names like swiggy.com or google.com.
+- DNS is a system that translates domain names (like google.com) into IP addresses (like 142.250.183.14).
+- Analogy: like the contacts app on your phone. You tap a name, and the phone looks up the number and dials it.
+
+### PORT
+- We can run multiple servers on the same machine, but each server must listen on a different port.
+- Port number is used to differentiate between multiple services running on the same machine. 
+- IP address finds the machine; port finds the application on that machine.
+  - Analogy: IP = building address, port = flat number.
+- Port range: 0 – 65535 (0 – 1023 are reserved for well-known services).
+- Common ports:
+  - 80 → HTTP (websites)
+  - 443 → HTTPS (secure websites)
+  - 21 → FTP (file transfer)
+  - 22 → SSH (remote login)
+  - 25 → SMTP (sending emails)
+  - 3306 → MySQL
+- Example: a machine with IP 192.168.1.2
+  - Nginx listening on port 80 → client sends request to http://192.168.1.2:80
+  - Node.js server listening on port 3000 → client sends request to http://192.168.1.2:3000
+  - MySQL listening on port 3306 → app connects to 192.168.1.2:3306
+- Browsers add default ports automatically: http → 80, https → 443. So https://google.com is actually https://google.com:443.
+- If two servers try to use the same port, the second one fails with: EADDRINUSE (address already in use).
+
+### What is a web server?
+- A web server is a software that listens for HTTP requests on a specific port (usually 80 or 443) and responds with HTTP responses, usually serving web pages or APIs.
+- Examples: Nginx, Apache, Node.js with Express.
+- A web server can serve static files (HTML, CSS, JS) or dynamic content generated by server-side code (Node.js, Python, PHP, etc.).
+- A web server can also act as a reverse proxy, forwarding requests to other servers or services, and can handle load balancing, caching, and security features like SSL/TLS.
+
+# DATABASE
+
+### What is a database?
+- A database is a structured collection of data that is stored and managed in a way that allows for efficient retrieval, manipulation, and organization of that data.
+- The software that manages a database is called a DBMS (Database Management System). Example: MySQL is a DBMS.
+
+### Types of databases
+- Relational Databases (SQL): store data in tables with rows and columns, and use Structured Query Language (SQL) for querying and managing the data. Examples: MySQL, PostgreSQL, Oracle Database, Microsoft SQL Server.
+- Non-relational Databases (NoSQL): store data in a variety of formats, such as key-value pairs, documents, graphs, or wide-column stores, and do not require a fixed schema. Examples: MongoDB, Cassandra, Redis, Couchbase.
+
+### Difference between SQL and NoSQL Databases
+- SQL Databases:
+  - Use structured tables with rows and columns.
+  - Enforce a fixed schema, meaning the structure of the data must be defined before inserting data.
+  - Use SQL for querying and managing data.
+  - Related data is stored in separate tables and connected using keys (JOINs).
+  - Support ACID (Atomicity, Consistency, Isolation, Durability) transactions.
+  - Mostly scale vertically (add more CPU/RAM to one server).
+  - Examples: MySQL, PostgreSQL, Oracle Database, Microsoft SQL Server.
+- NoSQL Databases:
+  - Store data in flexible formats: documents, key-value pairs, graphs or wide-columns.
+  - Have a flexible schema: each record can have different fields, and the structure can change anytime.
+  - Use their own query methods (e.g. MongoDB uses JSON-like queries), not standard SQL.
+  - Related data is often stored together in one record, so fewer joins are needed.
+  - Many favor availability and speed over strict consistency (eventual consistency), though some (like MongoDB) also support ACID transactions.
+  - Designed to scale horizontally (add more servers).
+  - Examples: MongoDB, Cassandra, Redis, Couchbase.
+
+### Types of NoSQL databases
+- Document: stores JSON-like documents → MongoDB, Couchbase
+- Key-Value: stores simple key → value pairs, very fast → Redis
+- Wide-Column: stores data in flexible columns, handles huge data → Cassandra
+- Graph: stores nodes and relationships → Neo4j
+
+### When to use which
+- SQL: data with clear structure and relationships, where accuracy is critical. Example: banking, orders, payments, inventory.
+- NoSQL: flexible or fast-changing data, huge scale, high speed. Example: chat messages, logs, caching (Redis), real-time analytics, product catalogs.
+
+### MongoDB
+- MongoDB is a NoSQL, document-based database.
+- Data stored in collectiosn in the form of documents
+- Stores data as documents in a JSON-like format. Internally it uses BSON (Binary JSON), which is faster and supports extra types like Date and ObjectId.
+
+### Key terms (SQL → MongoDB)
+- Table → Collection
+- Row → Document
+- Column → Field
+- Primary key → _id (auto-generated for each document)
+
+### Features
+- Flexible schema: documents in the same collection can have different fields, and the structure can change anytime without migrations.
+- Supports nested objects and arrays inside a document, so related data can be stored together (fewer joins).
+- Very compatible with the JS stack: data looks like JS objects, so no conversion is needed. Commonly used in the MERN stack (MongoDB, Express, React, Node).
+- Scales horizontally using sharding (data split across multiple servers).
+- High availability using replica sets (copies of data on multiple servers; if one fails, another takes over).
+- Supports ACID transactions (multi-document transactions since v4.0).
+- In Node.js, commonly used with Mongoose (an ODM that adds schemas and validation).
+
+### Basic queries
+- Insert: db.users.insertOne({ name: "Sakthi", city: "Hosur" })
+- Find:   db.users.find({ city: "Hosur" })
+- Update: db.users.updateOne({ name: "Sakthi" }, { $set: { city: "Bengaluru" } })
+- Delete: db.users.deleteOne({ name: "Sakthi" })
+
+# MONOLITH VS MICROSERVICES
+
+### What is monolithic architecture?
+- Monolithic architecture is a traditional software design approach where all the components of an application are built as a single, tightly integrated unit.
+- In a monolithic application, the user interface, business logic and data access layers are combined into a single codebase and deployed as a single executable or package.
+- Monolithic applications are typically easier to develop and deploy initially, but can become difficult to maintain and scale as the application grows in size and complexity.
+- In simple Monolith means frontend and backend are tightly coupled and deployed together.
+
+### What is microservices architecture?
+- Microservices architecture is a modern software design approach where an application is built as a collection of small, independent services that communicate with each other over a network.
+- Each microservice is responsible for a specific business capability and can be developed, deployed and scaled independently of other services.
+- Microservices architecture allows for greater flexibility, scalability and maintainability, as each service can be developed and deployed independently, and can use different programming languages, frameworks and databases as needed.
+- In simple Microservices means frontend and backend are loosely coupled and deployed independently (different repositories, different servers, different databases).
+
+# LLD and HLD
+
+### What is HLD?
+- HLD stands for High-Level Design.
+- It focuses on the overall architecture of a system: the big picture.
+- It shows the main components, how they connect and how data flows between them.
+- Decides: which services exist, which database type (SQL/NoSQL), caching, load balancing, queues, third-party integrations.
+- Includes: system architecture diagrams, data flow diagrams.
+- Answers: WHAT are the parts and HOW do they work together?
+- Usually done by architects / senior engineers.
+
+### What is LLD?
+- LLD stands for Low-Level Design.
+- It focuses on the implementation details of each component: a blueprint for developers to write code.
+- Defines: classes and methods, DB table schemas (columns, types, relations), API endpoints with request/response, data structures, error handling.
+- Includes: class diagrams, sequence diagrams, flowcharts.
+- Answers: HOW exactly is each part built?
+- Usually done by developers / tech leads.
+
+### HLD vs LLD
+- Level: HLD = whole system; LLD = inside each component
+- Audience: HLD = architects, stakeholders; LLD = developers
+- DB: HLD = choose DB type (MySQL / MongoDB / Redis); LLD = table structure and columns
+- API: HLD = which services expose APIs; LLD = exact endpoints, payloads, responses
+- Diagrams: HLD = architecture, data flow; LLD = class, sequence, flowchart
+
+### Example: food delivery app
+- HLD: Mobile app → Load balancer → Order service, Payment service, Restaurant service; orders stored in MySQL; menu cached in Redis.
+- LLD: Order class with placeOrder() / cancelOrder(); orders table (id, user_id, restaurant_id, status, total, created_at); POST /orders API with body { restaurantId, items[] }.
+
+### Which design should we start first?
+- Start with HLD first. It gives the big picture of the system and shows how components interact.
+- Once the architecture is clear, move to LLD to define the implementation details of each component.
+- This ensures implementation decisions align with the overall architecture and project goals.
+- In practice it is iterative: LLD can reveal issues that require updating the HLD.
+
+# REST API
+
+### What is REST API?
+- REST (Representational State Transfer) is an architectural style for designing networked applications.
+- REST APIs let different software systems communicate over HTTP using standard methods (GET, POST, PUT, PATCH, DELETE) and stateless interactions.
+- REST APIs use resources (data entities) identified by URLs, and clients perform operations on these resources using HTTP methods.
+- REST APIs are widely used for building web services and for communication between frontend and backend applications.
+
+### REST principles (constraints)
+- Client-Server: client and server are separate; they communicate only through requests and responses.
+- Stateless: each request contains all the information needed (e.g. auth token); the server does not remember previous requests.
+- Cacheable: responses can be marked cacheable so clients don't request the same data again.
+- Uniform Interface: resources are identified by URLs and accessed using standard HTTP methods.
+- Layered System: the client doesn't know if it is talking directly to the server or through a load balancer / proxy / cache.
+- Code on Demand (optional): the server can send executable code (e.g. JS) to the client.
+
+### HTTP methods
+- GET    → Read data          → GET /users/1        → Safe, Idempotent
+- POST   → Create new data    → POST /users         → Not idempotent (each call creates a new record)
+- PUT    → Replace entire data → PUT /users/1       → Idempotent
+- PATCH  → Update some fields → PATCH /users/1      → Not necessarily idempotent
+- DELETE → Delete data        → DELETE /users/1     → Idempotent
+- Safe = does not change data. Idempotent = calling it many times gives the same result as calling it once.
+
+### Common status codes
+- 2xx Success:      200 OK, 201 Created, 204 No Content
+- 3xx Redirect:     301 Moved Permanently, 304 Not Modified
+- 4xx Client error: 400 Bad Request, 401 Unauthorized (not logged in), 403 Forbidden (no permission), 404 Not Found, 409 Conflict, 422 Validation error, 429 Too Many Requests
+- 5xx Server error: 500 Internal Server Error, 502 Bad Gateway, 503 Service Unavailable
+
+### URL naming best practices
+- Use nouns, not verbs: /users (not /getUsers)
+- Use plural names: /users, /orders
+- Use nesting for relations: /users/1/orders
+- Use query params for filter / sort / pagination: /users?city=Hosur&page=2
+- Use versioning: /api/v1/users
+
+### REST API vs SOAP API
+- REST API:
+  - Architectural style, not a protocol.
+  - Uses standard HTTP methods (GET, POST, PUT, PATCH, DELETE).
+  - Typically uses JSON for data exchange (can also use XML).
+  - Stateless: each request contains all the information needed to process it.
+  - Lightweight and easier to use, especially for web and mobile applications.
+- SOAP API:
+  - Protocol with strict standards.
+  - Uses only XML for data exchange.
+  - Requires a specific message structure (envelope, header, body).
+  - Can be stateful or stateless, but often more complex.
+  - Heavier; often used in enterprise applications with strict security and transaction requirements (e.g. banking).
+
+### REST API vs GraphQL
+- REST API:
+  - Uses multiple endpoints for different resources (e.g. /users, /posts).
+  - Each endpoint returns a fixed structure of data.
+  - Over-fetching (more data than needed) or under-fetching (needing multiple calls) can occur.
+  - Caching is straightforward, since each endpoint can be cached independently.
+- GraphQL:
+  - Uses a single endpoint for all queries and mutations (e.g. /graphql).
+  - Clients specify exactly what data they need, reducing over-fetching and under-fetching.
+  - Uses a strongly typed schema.
+  - More complex to implement and cache, since queries can vary widely.
+
+### Difference between PUT and PATCH
+- PUT:
+  - Replaces the entire resource with the new data provided in the request.
+  - If a field is missing in the request, it is removed or reset to null/default.
+  - Idempotent: making the same PUT request multiple times has the same effect as making it once.
+  - Example: user = { name: "Sakthi", city: "Hosur" }
+    PUT /users/1 { name: "Sakthivel" } → { name: "Sakthivel" } (city removed)
+- PATCH:
+  - Updates only the specified fields, leaving other fields unchanged.
+  - If a field is missing in the request, it is not modified.
+  - Not necessarily idempotent: the same PATCH request may give different results when repeated.
+  - Example: PATCH /users/1 { name: "Sakthivel" } → { name: "Sakthivel", city: "Hosur" } (city unchanged)
+  - Non-idempotent example: PATCH /posts/1 { "likes": "+1" } → likes increases on every call.
+
+### How node_modules work?
+- When you run `npm install <package>`, npm downloads the package and its dependencies into the `node_modules` folder in your project.
+- Each package can have its own `node_modules` folder for its dependencies, creating a nested structure.
+- Node.js uses a module resolution algorithm to find the required module:
+  1. It first looks in the `node_modules` folder of the current directory.
+  2. If not found, it looks in the `node_modules` folder of the parent directory, and so on, up to the root of the filesystem.
+- This allows different projects to have different versions of the same package without conflicts.
+
+### What is package.json?
+- `package.json` is a file that contains metadata about a Node.js project, including its name, version, description, main entry point, scripts, dependencies, and more.
+- It is used by npm to manage the project's dependencies and scripts.
+- Key fields:
+  - `name`: The name of the project.
+  - `version`: The version of the project.
+  - `description`: A brief description of the project.
+  - `main`: The entry point of the application (e.g., `index.js`).
+  - `scripts`: A set of commands that can be run using `npm run <script>`.
+  - `dependencies`: A list of packages required for the project to run.
+  - `devDependencies`: A list of packages required only for development (e.g., testing tools, build tools).
+  - `engines`: Specifies the versions of Node.js and npm that the project is compatible with.
+
+### What is package-lock.json?
+- `package-lock.json` is a file automatically generated by npm that records the exact versions of installed dependencies and their dependencies, ensuring that the same versions are installed in every environment.
+- It helps maintain consistency across different machines and deployments, preventing issues caused by version mismatches.
+- It includes information such as the resolved version of each package, the package's integrity hash, and the dependency tree.
+
+### Differnce between dependencies and devDependencies?
+- `dependencies`: These are the packages required for the application to run in production.
+- They are installed when you run `npm install` without any flags.
+- Example: Express, Mongoose, Axios.
+- `devDependencies`: These are the packages required only for development and testing purposes.
+- They are installed when you run `npm install --save-dev` or `npm install -D`.
+- Example: Jest, ESLint, Babel, Webpack.
+
+### Versioning in package.json
+- Semantic Versioning (SemVer) is used in `package.json` to specify the version of a package.
+- A version number is in the format `MAJOR.MINOR.PATCH`
+  - MAJOR: Incremented for incompatible API changes.
+  - MINOR: Incremented for adding functionality in a backward-compatible manner.
+  - PATCH: Incremented for backward-compatible bug fixes.
+- Version ranges can be specified using symbols:
+  - `^1.2.3`: Compatible with version 1.x.x, but not 2.0.0 (allows updates to minor and patch versions).
+  - `~1.2.3`: Compatible with version 1.2.x, but not 1.3.0 (allows updates to patch versions only).
+  - `1.2.3`: Exact version 1.2.3 only.
+  - `*`: Any version is acceptable.
+
+
+  # EXPRESS JS
+
+  ### What is Express.js?
+  - Express js is a framework for Node.js to create servers and APIs easily.
+  - It is built on top of Node's http module and makes common tasks simpler
+    - Routing: define routes for different HTTP methods and URLs
+    - Middleware: functions that can process requests and responses, e.g. logging, authentication, error handling
+    - Request and response handling: parsing request bodies, sending JSON responses, etc.
+
+  ### Basic Server
+  ```js
+  const express = require('express');
+  const app = express();
+
+  app.get('/', (req, res) => {
+    res.send('Hello World!');
+  });
+
+  app.listen(3000, () => {
+    console.log('Server is running on port 3000');
+  });
+  ```
+  - When a get request is made to the root URL ('/'), the server responds with 'Hello World!'.
+
+  ### app.use() vs app.get()
+  - `app.get()` : runs only for GET requests to the specified path. Used for routes.
+  - `app.use()` : runs for all HTTP methods (GET, POST, PUT, DELETE) and all paths that match the specified path. Used for middleware.
+  - Example:
+  ```js
+  app.use((req, res, next) => {
+    console.log('This runs for all requests');
+    next(); // pass control to the next middleware or route handler
+  });
+  app.get('/', (req, res) => {
+    res.send('Hello World!');
+  });
+  ```
+  
+
