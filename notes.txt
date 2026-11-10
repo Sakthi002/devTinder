@@ -795,4 +795,94 @@ app.get(/^\/users\/(\d+)$/, (req, res) => res.send(req.params[0])); // /users/5 
 ```
 - Check the installed version with: `npm list express`
 
+### Handling multiple route handlers and next()
+- We can attach multiple route handlers to a single route.
+- Each handler receives (req, res, next). Calling next() passes control to the next handler.
+- Handlers can be passed one by one or as an array:
+```js
+app.get('/user', h1, h2, h3);
+app.get('/user', [h1, h2], h3);
+```
 
+### Rules
+- Every request must end with exactly one response (res.send / res.json / res.end).
+- Single handler without a response → the request hangs (the client keeps waiting until timeout).
+- In each handler, do either res.send() OR next(), not both.
+- res.send() then next():
+  - The response is sent to the client, then control passes to the next handler.
+  - If the next handler also sends a response → Error: "Cannot set headers after they are sent to the client".
+- next() then res.send():
+  - next() runs the next handler immediately, which sends the response.
+  - Control then returns to the first handler; its res.send() runs → the same error, thrown in the first handler.
+- Use `return next()` or `return res.send()` so no code runs after it in that handler.
+- If every handler only calls next() and none sends a response, Express's default handler responds with 404 "Cannot GET /user". It does not throw an error.
+
+### Example
+```js
+app.get('/user',
+  (req, res, next) => {
+    console.log('Handler 1');
+    return next();                     // pass to handler 2
+  },
+  (req, res) => {
+    console.log('Handler 2');
+    return res.send('User details');   // final response
+  }
+);
+```
+
+### next(err): passing errors
+- Calling next(err) skips the remaining normal handlers and jumps to the error-handling middleware.
+```js
+app.get('/user', (req, res, next) => {
+  if (!req.query.id) return next(new Error('ID required'));
+  res.send('User found');
+});
+
+// Error handler: 4 parameters (err, req, res, next); defined after routes
+app.use((err, req, res, next) => {
+  res.status(400).json({ error: err.message });
+});
+```
+## MIDDLEWARE 
+
+### Why multiple handlers?
+- To split the work into steps: auth check → validation → actual logic.
+- Each step can stop the request (send an error response) or pass it forward with next().
+- These in-between handlers are called middleware.
+```js
+const checkAuth = (req, res, next) => {
+  if (!req.headers.authorization) return res.status(401).send('Unauthorized');
+  next();
+};
+
+app.get('/profile', checkAuth, (req, res) => res.send('Profile data'));
+```
+
+### What is happening under the hood in Express?
+- Every app.use() and app.get()/post()/put()/delete() is added, in the order written, to an internal list called the middleware stack.
+- When a request comes in, Express goes through the stack from top to bottom:
+  - It checks each layer for a match on both method and path.
+    - app.use('/path') → matches any method, and URLs starting with /path
+    - app.get('/path') → matches only GET, and the exact path
+  - If a layer matches, its function runs.
+    - If it calls next() → Express continues to the next matching layer.
+    - If it sends a response (res.send / res.json / res.end) → the request ends there.
+  - If a layer doesn't match, it is skipped.
+- If no layer sends a response, the request reaches the end of the stack and Express sends 404 "Cannot GET /path".
+- That's why order matters: middleware like express.json() must be registered before the routes that need it.
+
+### Middleware vs route handler
+- Middleware: functions that run in between the request and the final response. They do work (parse body, log, check auth) and call next().
+- Route handler: the final function that sends the response to the client.
+- Flow: Request → middleware → middleware → route handler → Response
+
+### Difference between app.use() and app.all()
+- `app.use(path, middleware)`:
+  - Runs for all HTTP methods (GET, POST, PUT, DELETE) and any URL that starts with the specified path.
+  - Commonly used for middleware that applies to multiple routes (e.g., body parsing, logging).
+  - Example: `app.use('/api', authMiddleware)` → runs for /api/users, /api/orders, etc.
+- `app.all(path, handler)`:
+  - Runs for all HTTP methods (GET, POST, PUT, DELETE) but only for the exact specified path.
+  - Commonly used for defining a single handler that should respond to all methods on a specific route.
+  - Example: `app.all('/status', (req, res) => res.send('Server is running'))` → responds to GET /status, POST /status

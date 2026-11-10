@@ -1,17 +1,25 @@
 const express = require("express");
 
 const app = express();
-app.use(express.json());
+const { adminAuth, userAuth } = require("../middlewares/auth")
 
-app.get('/user/:id', (req, res) => {
-    console.log(req.params);
-    res.status(200).json({ first_name : 'Sakthi', last_name: "Viji" });
-})
+app.use('/admin', adminAuth);
 
-app.post('/user', (req, res) => {
-    console.log(req.body);
-    res.status(200).json({ message : 'Updated successfully!' });
-})
+app.get('/user/login', (req, res) => {
+    res.send("Loggedin successfully!");
+});
+
+app.get('/user/data',userAuth, (req, res) => {
+    res.send("User data sent");
+});
+
+app.get('/admin/getAllData', (req, res, next) => {
+    res.send("All data sent")
+});
+
+app.get('/admin/deleteUser', (req, res, next) => {
+    res.send("User deleted")
+});
 
 app.listen("3000", () => {
     console.log("Server running successfully!!!!!!!!!!!");
