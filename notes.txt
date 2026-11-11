@@ -110,6 +110,44 @@
 - 4. Executing the module code - the code inside the IIFE is executed and the module.exports object is populated with the exported values and returned to the caller.
 - 5. Caching the module - the module.exports object is cached and returned to the caller. If the same module is required again, the cached version is returned instead of re-executing the module code.
 
+### How async/await works
+- An async function always returns a Promise.
+- When called, it runs synchronously until the first `await`.
+- At `await`:
+  - The function pauses; control returns to the caller, and the code after the call continues.
+  - The awaited operation (file/DB/network) runs in the background (libuv / OS).
+- When the awaited Promise resolves, the rest of the function is queued as a Promise microtask.
+- When the call stack is empty, the event loop runs that microtask and the function resumes after the `await`.
+- `await` pauses only that function, not the whole program.
+- async/await is syntax over Promises: `await x` works like `x.then(rest of the function)`.
+
+### What is a Promise?
+- A Promise is an object representing a value that will be available later (success) or an error (failure).
+- States:
+  - pending → still waiting
+  - fulfilled → success, has a value
+  - rejected → failed, has an error
+  - Once fulfilled or rejected, it never changes.
+- Creating: `new Promise((resolve, reject) => { ... })`
+  - The executor function runs immediately (synchronously).
+  - Call resolve(value) for success, reject(error) for failure.
+- Using:
+  - .then(fn) → runs on success
+  - .catch(fn) → runs on failure
+  - .finally(fn) → runs either way
+- .then/.catch callbacks are always queued as Promise microtasks, never run synchronously, even if the Promise is already resolved.
+- Chaining: each .then() returns a new Promise; one .catch() at the end handles errors from any step.
+
+### Promise methods
+- Promise.all → waits for all; fails if any one fails.
+- Promise.allSettled → waits for all; returns every result (success or failure).
+- Promise.race → settles with the first one to finish (success or failure).
+- Promise.any → resolves with the first success; fails only if all fail.
+
+### Promise vs async/await
+- async/await is cleaner syntax over Promises.
+- .then() ↔ await, .catch() ↔ try/catch
+
 ## LIBUV & ASYNC IO 
 
 ### Difference between synchronous and asynchronous programming?
@@ -920,3 +958,80 @@ app.get('/profile', checkAuth, (req, res) => res.send('Profile data'));
     res.status(500).json({ error: 'Something went wrong!' });
   });
   ```
+
+# DATABASE CONNECTION | MONGOOSE
+
+### What is Mongoose?
+- Mongoose is a library (ODM: Object Data Modeling) that connects Node.js with MongoDB.
+- MongoDB is flexible: it accepts any data in any shape, even wrong or incomplete data.
+- Mongoose adds rules on top of MongoDB so only correct data is saved.
+- Analogy: MongoDB is a notebook where you can write anything; Mongoose is a printed form with fixed fields and rules.
+
+### Key terms
+- Schema → the rules for the data (fields, types, required, default values)
+- Model → a tool created from a schema, used to create, read, update and delete data in a collection
+- Document → one record saved in the database
+
+### Why use Mongoose?
+- Schema: define the structure and data types for each field.
+- Validation: rejects wrong data (missing required fields, wrong types).
+- Easy queries: User.find(), User.create(), User.findById(), etc.
+- Middleware (hooks): run custom code before/after saving (e.g. hash a password before saving).
+
+### How to connect
+- Install: `npm install mongoose`
+```js
+const mongoose = require('mongoose');
+
+mongoose.connect('mongodb://localhost:27017/mydatabase')
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(err => console.error('Could not connect to MongoDB:', err.message));
+```
+- URL parts: mongodb:// (protocol), localhost (machine), 27017 (default port), mydatabase (DB name, auto-created on first insert).
+- For MongoDB Atlas (cloud): mongodb+srv://user:password@cluster-url/dbname
+- useNewUrlParser and useUnifiedTopology are no longer needed (since Mongoose 6).
+
+### Example: schema → model → document
+```js
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  age:  { type: Number },
+});
+
+const User = mongoose.model('User', userSchema); // collection: "users"
+
+await User.create({ name: 'Sakthi', age: 30 });  // ✅ saved
+await User.create({ age: 'thirty' });            // ❌ validation error
+```
+
+### Auto-generated fields: _id and __v
+- When we save a document, Mongoose adds two fields automatically:
+```json
+{ "_id": "6731c2f4a1b2c3d4e5f60789", "name": "Sakthi", "__v": 0 }
+```
+
+### _id
+- A unique ID for every document (like a primary key).
+- Created automatically by MongoDB.
+- It also stores the creation time: `user._id.getTimestamp()`
+- Used to find a document: `User.findById(id)`
+
+### __v
+- A version number added by Mongoose. Starts at 0.
+- Used internally to avoid update conflicts. We can ignore it.
+- To remove it: `new mongoose.Schema({...}, { versionKey: false })`
+
+### Bonus: timestamps
+- `new mongoose.Schema({...}, { timestamps: true })` adds createdAt and updatedAt automatically.
+
+### JS Object vs JSON
+- JS Object: a data structure in memory, used in code.
+- JSON (JavaScript Object Notation): a text format (string) used to send/store data.
+- JSON rules: keys and strings must use double quotes; no functions, undefined, comments or trailing commas.
+- Convert:
+  - JSON.stringify(obj) → object to JSON text
+  - JSON.parse(text) → JSON text to object
+- In Express:
+  - express.json() → converts request JSON into a JS object (req.body)
+  - res.json(obj) → converts a JS object into JSON and sends it
+
