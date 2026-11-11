@@ -8,6 +8,10 @@ const app = express();
 
 app.use(express.json());
 
+const { validateSignUpData } = require('./utils/validation');
+
+const bcrypt = require("bcrypt");
+
 // Get user by id
 app.get("/getUserById", async(req, res) => {
 
@@ -79,9 +83,27 @@ app.get('/feed', async (req, res) => {
 // Create user
 app.post("/signup", async (req, res) => {
     
-    const user = new User(req.body)    
-    
     try {
+
+        // 1. validate
+        validateSignUpData(req.body);
+
+        // 2. hash the password
+        const { firstName, lastName, emailId, password } = req.body;
+
+        const hashPassword = await bcrypt.hash(password, 10);
+        console.log(hashPassword);
+        
+        if(req.body?.skills?.length > 10) {
+            throw new Error("Skills more than 10 not allowed")
+        }
+
+        const user = new User({
+            firstName,
+            lastName,
+            emailId,
+            password: hashPassword
+        })    
 
         await user.save();
 
@@ -120,19 +142,31 @@ app.delete('/user', async (req, res) => {
 });
 
 // Update the user by id
-app.patch('/user', async (req, res) => {
+app.patch('/user/:userId', async (req, res) => {
 
-    const userId = req.body.userId;
+    const userId = req.params.userId;
 
     try {
 
-        const result = await User.findByIdAndUpdate(userId, req.body);
+        const ALLOWED_UPDATES = ['photoURL', 'about', 'gender', 'age', 'skills'];
+
+        const isUpdateAllowed = Object.keys(req.body).every((k) => ALLOWED_UPDATES.includes(k));
+
+        if(!isUpdateAllowed) {
+            throw new Error("Update not allowed")
+        }
+
+        if(req.body?.skills?.length > 10) {
+            throw new Error("Skills more than 10 not allowed")
+        }
+
+        const result = await User.findByIdAndUpdate(userId, req.body, { runValidators: true });
 
         res.send("User updated successfully!")
         
     } catch (e) {
 
-        res.send("Something went wrong!");
+        res.send("Something went wrong!" + e.message);
     }
 })
 
@@ -152,6 +186,37 @@ app.patch('/user-by-mail', async (req, res) => {
         res.send("Something went wrong!");
     }
 })
+
+app.post('/login', async (req, res) => {
+
+    try {
+
+        const { emailId, password } = req.body;
+
+        const user = await User.findOne({ emailId: emailId });
+
+        console.log(user);
+        
+        if(!user) {
+            throw new Error("Invalid credentials!");
+        }
+
+        const isValidPassword = await bcrypt.compare(password, user.password);
+
+        if(isValidPassword) {
+
+            res.send("Login successful!");
+
+        } else {
+
+            throw new Error("Invalid credentials!");
+        }
+
+    } catch (e) {
+
+        res.status(400).send(`ERROR : ${e.message}`);
+    }
+});
 
 connectDB().then(res => {
 

@@ -1035,3 +1035,46 @@ await User.create({ age: 'thirty' });            // ❌ validation error
   - express.json() → converts request JSON into a JS object (req.body)
   - res.json(obj) → converts a JS object into JSON and sends it
 
+### SCHMEMA VALIDATION 
+- Mongoose schema validation ensures that the data being saved to the database adheres to the defined structure and rules. It helps maintain data integrity and prevents invalid data from being stored.
+- Common validation options:
+- `required`: Ensures that a field must be provided.
+- `type`: Specifies the data type (String, Number, Date, Boolean, Array, Object, etc.).
+- `min` and `max`: For numbers, sets minimum and maximum values.
+- `minlength` and `maxlength`: For strings, sets minimum and maximum length.
+- `enum`: For strings, restricts the value to a set of allowed values.
+- `match`: For strings, validates against a regular expression.
+- `default`: Sets a default value if none is provided.
+- Example:
+```js
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true, minlength: 3 },
+  age: { type: Number, min: 0, max: 120 },
+  email: { type: String, match: /.+\@.+\..+/ },
+  role: { type: String, enum: ['user', 'admin'], default: 'user' },
+});
+```
+
+### Custom validation
+- Mongoose allows you to define custom validation functions for more complex validation logic.
+- Example:
+```js
+const userSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: true,
+    validate: {
+      validator: function(v) {
+        return /^[a-zA-Z0-9]+$/.test(v); // only alphanumeric
+      },
+      message: props => `${props.value} is not a valid username!`
+    }
+  }
+});
+```
+- When a document is saved, Mongoose runs the custom validator and throws an error if the validation fails.
+- It wont work automatically for update operations (like findByIdAndUpdate). To validate on updates, use the `runValidators: true` option:
+```js
+User.findByIdAndUpdate(id, { username: 'invalid!' }, { runValidators: true });
+``` 
+
