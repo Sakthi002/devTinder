@@ -1078,3 +1078,169 @@ const userSchema = new mongoose.Schema({
 User.findByIdAndUpdate(id, { username: 'invalid!' }, { runValidators: true });
 ``` 
 
+# AUTHENTICATION :: JWT & COOKIES
+
+### How authentication works
+- The user logs in with email and password; the server verifies the credentials against the DB.
+- If valid, the server creates a JWT (signed with a secret key), puts it in a cookie and sends it to the client.
+- The browser stores the cookie and automatically sends it with every request to that server.
+- For protected routes, the server reads the token from the cookie and verifies its signature using the secret key.
+  - Valid → the request continues
+  - Invalid / expired → 401 Unauthorized
+
+### What is JWT?
+- JWT (JSON Web Token) is a token used to identify a logged-in user.
+- It has 3 parts separated by dots: header.payload.signature
+  - Header → algorithm used
+  - Payload → user data (e.g. user _id)
+  - Signature → created using the secret key; proves the token was not modified
+- A JWT is signed, not encrypted: anyone can read the payload, so never store passwords or sensitive data in it.
+- The server doesn't need to store the token; it just verifies the signature (stateless).
+- jwt.sign → creates a token; jwt.verify → checks the signature and returns the payload if valid.
+- jwt.verify returns hided value
+
+### What is a cookie?
+- A small piece of data stored by the browser and sent automatically with every request to the same server.
+- Important cookie options:
+  - httpOnly: true → JS in the browser can't read it (protects against XSS)
+  - secure: true → sent only over HTTPS
+  - maxAge / expires → when the cookie expires
+
+### Packages
+- jsonwebtoken → jwt.sign() to create a token, jwt.verify() to validate it
+- cookie-parser → lets Express read cookies via req.cookies
+
+### Logout
+- Clear the cookie: res.clearCookie('token')
+
+- To read cookies in Express, use the cookie-parser middleware:
+```js
+const cookieParser = require('cookie-parser');
+app.use(cookieParser());
+```
+
+- To create a JWT:
+```js
+const jwt = require('jsonwebtoken');
+const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+```
+
+### Adding Schema methods
+- Mongoose allows you to define custom methods on your schema, which can be called on instances of the model (documents).
+- Arrow functions cannot be used for schema methods because they do not have their own `this` context; they inherit `this` from the enclosing scope, which is not the document instance.
+- Example: adding a method to generate a JWT for a user:
+```js
+userSchema.methods.generateAuthToken = function() {
+  const token = jwt.sign({ _id: this._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+  return token;
+};
+// Usage:
+const user = await User.findById(id);
+const token = user.generateAuthToken();
+```
+
+### Adding Schema pre-save middleware
+- Mongoose allows you to define pre-save middleware that runs before a document is saved to the database. This is useful for tasks like hashing passwords before saving.
+- Example: hashing a password using bcrypt before saving a user:
+```js
+const bcrypt = require('bcryptjs');
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next(); // only hash if password is new
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
+```
+# EXPRESS.ROUTER()
+### What is express.Router()?
+- `express.Router()` is a mini Express application that can be used to organize routes into separate files or modules.
+- It allows you to create modular route handlers and group related routes together, making your code cleaner and easier to maintain.
+- Each router can have its own middleware, routes, and error handlers, and can be mounted on a specific path in the main app.
+### How to use express.Router()?
+- Create a new router instance using `express.Router()`.
+- Define routes on the router instance using `router.get()`, `router.post()`, etc.
+- Export the router instance and import it in your main app file.
+- Mount the router on a specific path using `app.use('/path', router)`.
+- Example:
+```js
+// routes/users.js
+const express = require('express');
+const router = express.Router();
+router.get('/', (req, res) => {
+  res.send('Get all users');
+});
+router.post('/', (req, res) => {
+  res.send('Create a new user');
+});
+module.exports = router;
+
+// app.js
+const express = require('express');
+const app = express();
+const userRoutes = require('./routes/users');
+app.use('/users', userRoutes); // Mount the router on /users
+```
+
+### Use of clearCookie?
+- `res.clearCookie(name, options)` is used to clear a cookie from the client's browser.
+- It sets the cookie's expiration date to a time in the past, effectively removing it.
+- Important: When clearing a cookie, you must provide the same options (path, domain, secure, httpOnly) that were used when the cookie was set; otherwise, the cookie may not be cleared correctly.
+- Example:
+```js
+// Set a cookie
+res.cookie('token', jwtToken, { httpOnly: true, secure: true, maxAge: 3600000 });
+// Clear the cookie
+res.clearCookie('token', { httpOnly: true, secure: true });
+```
+
+## Indexing & Compound Indexes in MongoDB
+
+### Why do we need indexing?
+- Indexing is a technique used in databases to improve the speed of data retrieval.
+- Without an index, MongoDB performs a collection scan: it checks every document to find matches. This is slow for large collections.
+- An index is a data structure that stores a small portion of the collection's data in an easy-to-search, sorted form, so MongoDB can quickly find matching documents without scanning the entire collection.
+- Indexes can be created on one or more fields and greatly improve performance for frequently queried fields.
+- Analogy: like the index at the back of a book; you jump straight to the right page instead of reading every page.
+
+### How to create an index in Mongoose?
+- Option 1: use the `index` option in the schema definition.
+- Option 2: use the `schema.index()` method.
+```js
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true }, // unique creates an index automatically
+  age: { type: Number, index: true },                   // Option 1
+});
+
+// Option 2
+userSchema.index({ name: 1 }); // 1 = ascending, -1 = descending
+```
+- unique: true automatically creates an index; no need to add index: true.
+- Don't define the same index twice (index: true AND schema.index()); Mongoose warns "Duplicate schema index".
+
+### Compound Indexes
+- A compound index includes multiple fields. It speeds up queries that filter or sort on those fields together.
+```js
+const userSchema = new mongoose.Schema({
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
+  age: { type: Number },
+});
+
+userSchema.index({ firstName: 1, lastName: 1 }); // compound index
+```
+
+### Compound index: order matters (prefix rule)
+- Index { firstName: 1, lastName: 1 } supports queries on:
+  - firstName ✅
+  - firstName + lastName ✅
+  - lastName alone ❌ (the first field is skipped, so the index can't be used)
+- Put the most frequently queried field first.
+- Analogy: a phone directory sorted by first name, then last name. Finding "Sakthi" is fast; finding everyone with last name "Viji" needs a full scan.
+
+### Why not index all fields?
+- Indexes speed up reads but slow down writes: every insert/update/delete must also update every index.
+- Each index uses disk space and RAM; too many indexes reduce overall performance.
+- Fields with few distinct values (true/false, gender) gain little from an index.
+- MongoDB allows a maximum of 64 indexes per collection.
+- Rule: index only the fields frequently used in search, filter or sort (e.g. email, userId, createdAt).
