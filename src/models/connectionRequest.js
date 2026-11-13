@@ -5,16 +5,19 @@ const connectRequestSchema = new Schema({
 
     fromUserId: {
         type: mongoose.Types.ObjectId,
-        required: true
+        required: true,
+        ref: "User"
     },
 
     toUserId: {
         type: mongoose.Types.ObjectId,
-        required: true
+        required: true,
+        ref: "User"
     },
 
     status: {
         type: String,
+        required: true,
         enum: {
             values: ['interested', 'ignored', 'accepted', 'rejected'],
             message: "{VALUE} is not a valid status"
@@ -23,7 +26,7 @@ const connectRequestSchema = new Schema({
 
 },{ timestamps: true });
 
-connectRequestSchema.pre('save', function(next) {
+connectRequestSchema.pre('save', function() {
 
     const connectRequest = this;
 
@@ -31,9 +34,6 @@ connectRequestSchema.pre('save', function(next) {
 
         throw new Error("You cant send request to you")
     }
-
-    next()
-
 });
 
 connectRequestSchema.index({ fromUserId: 1, toUserId: 1 });
