@@ -1806,3 +1806,138 @@ fetch("http://localhost:3000/login", {
 ### Important
 
 - app.use(cors(...)) must come before the routes.
+
+# Namaste Node.js Season 2: Review Q&A
+
+## Q1. Why does login need `withCredentials` (axios) + `credentials: true` (cors)?
+
+**Answer**
+
+- The frontend (`localhost:5173`) and backend (`localhost:7777`) are different **origins**.
+- Origin = protocol + domain + **port**. Even the same domain with a different port is a different origin.
+- By default, axios/fetch do **not** send cookies to a different origin.
+- `withCredentials: true` (frontend) says: "send my cookies with this request."
+- `credentials: true` (backend `cors`) says: "I accept cookies from this origin."
+- Both are needed. One side alone does not work.
+
+**CORS (Cross-Origin Resource Sharing)**
+
+- CORS is enforced by the **browser** (same-origin policy), not the server.
+- The server still receives the request. The browser refuses to give the response to your JS unless the server allows that origin.
+- With `credentials: true`, `origin` **cannot be `*`**. It must be the exact frontend URL.
+- For non-simple requests (PATCH, DELETE, JSON body), the browser first sends an **OPTIONS preflight** request. The `cors` package answers it.
+
+```js
+// Frontend
+axios.post(
+    `${BASE_URL}/login`,
+    { emailId, password },
+    { withCredentials: true },
+);
+
+// Backend
+const cors = require("cors");
+app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+```
+
+---
+
+## Q2. How does the frontend know the user is logged in after a page refresh?
+
+**Answer**
+
+- After login, the server sets the token cookie in the browser.
+- On page load, the app calls the profile API (e.g. `/profile/view`) with `withCredentials: true`.
+- The browser sends the cookie automatically; the server verifies it and returns the user.
+- The app stores the user in the Redux store.
+- If the API returns **401**, redirect to the login page.
+
+**Key point**
+
+The frontend **cannot check the cookie itself**. It is `httpOnly`, so JavaScript cannot read it. The only way to know is to **ask the server**.
+
+```js
+const fetchUser = async () => {
+    try {
+        const res = await axios.get(`${BASE_URL}/profile/view`, {
+            withCredentials: true,
+        });
+        dispatch(addUser(res.data));
+    } catch (err) {
+        if (err.response?.status === 401) navigate("/login");
+    }
+};
+
+useEffect(() => {
+    if (!user) fetchUser();
+}, []);
+```
+
+---
+
+## Q3. How does the API prevent self requests and duplicate requests?
+
+**Checks needed**
+
+1. A user cannot send a request to themselves.
+2. The target user must exist.
+3. No duplicate in **either direction**: A→B twice, or B→A after A→B.
+4. `status` must be an allowed value (`interested` / `ignored`).
+
+**Common mistake**
+
+```js
+// WRONG
+let alreadyExists = Requests.find({
+    $or: [{ toUserId: loggedInUser._id }, { fromUserId: loggedInUser._id }],
+});
+```
+
+| Problem                     | Why it's wrong                                                                                                  |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Wrong condition             | Matches **any** request involving the user, with anyone. After the first request, they could never send another |
+| `find` instead of `findOne` | `find` returns an array/query, which is always truthy                                                           |
+| Missing `await`             | Returns a pending query, not the result                                                                         |
+
+**Correct version: check the pair, both directions**
+
+```js
+const fromUserId = req.user._id;
+const { toUserId, status } = req.params;
+
+// 1. Allowed status
+const allowedStatus = ["interested", "ignored"];
+if (!allowedStatus.includes(status)) {
+    return res.status(400).json({ message: "Invalid status: " + status });
+}
+
+// 2. Self request
+if (fromUserId.equals(toUserId)) {
+    return res.status(400).json({ message: "Cannot send request to yourself" });
+}
+
+// 3. Target user exists
+const toUser = await User.findById(toUserId);
+if (!toUser) return res.status(404).json({ message: "User not found" });
+
+// 4. Duplicate in either direction
+const alreadyExists = await ConnectionRequest.findOne({
+    $or: [
+        { fromUserId, toUserId },
+        { fromUserId: toUserId, toUserId: fromUserId },
+    ],
+});
+if (alreadyExists) {
+    return res.status(400).json({ message: "Request already exists" });
+}
+```
+
+| Detail                                          | Why                                                                  |
+| ----------------------------------------------- | -------------------------------------------------------------------- |
+| `.equals()` for ObjectIds                       | `===` compares object references, so two equal IDs are still `false` |
+| Both directions in `$or`                        | Blocks A→B twice and B→A after A→B                                   |
+| Compound index `{ fromUserId: 1, toUserId: 1 }` | Makes this lookup fast                                               |
+
+```js
+connectionRequestSchema.index({ fromUserId: 1, toUserId: 1 });
+```
