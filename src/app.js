@@ -10,9 +10,7 @@ const cookieParser = require("cookie-parser");
 app.use(cookieParser());
 
 const cors = require("cors");
-app.use(
-    cors({ origin: "https://devtinder-sakthi.duckdns.org", credentials: true }),
-);
+app.use(cors({ origin: "https://sakthivelmunusami.in", credentials: true }));
 
 const authRouter = require("./routes/auth");
 const profileRouter = require("./routes/profile");
