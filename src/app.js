@@ -10,12 +10,7 @@ const cookieParser = require("cookie-parser");
 app.use(cookieParser());
 
 const cors = require("cors");
-app.use(
-    cors({
-        credentials: true,
-        origin: "http://localhost:5173",
-    }),
-);
+app.use(cors({ origin: "http://16.179.223.195", credentials: true }));
 
 const authRouter = require("./routes/auth");
 const profileRouter = require("./routes/profile");
