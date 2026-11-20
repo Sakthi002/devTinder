@@ -5,6 +5,8 @@ const { userAuth } = require('../middlewares/auth');
 const ConnectionRequest = require("../models/connectionRequest");
 const User = require("../models/user");
 
+const { sendMail } = require("../utils/sendEmail.js")
+
 requestRouter.post('/request/send/:status/:toUserId', userAuth, async (req, res) => {
 
     try {
@@ -47,6 +49,22 @@ requestRouter.post('/request/send/:status/:toUserId', userAuth, async (req, res)
         });
 
         await connectionRequest.save();
+
+        if (status === "interested") {
+  try {
+    const res = await sendMail({
+      to: toUser.emailId,
+      subject: "New connection request on DevTinder",
+      html: `<p><b>${req.user.firstName}</b> is interested in connecting with you on DevTinder.</p>`,
+      text: `${req.user.firstName} is interested in connecting with you on DevTinder.`,
+    });
+    console.log(res,'email');
+    
+  } catch (err) {
+    console.error("Email failed:", err.name, err.message);
+  }
+}
+        
 
         res.json({ message: "Connection request sent", data: connectionRequest });
 
