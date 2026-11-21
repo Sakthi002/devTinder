@@ -11,7 +11,12 @@ const cookieParser = require("cookie-parser");
 app.use(cookieParser());
 
 const cors = require("cors");
-app.use(cors({ origin: "https://sakthivelmunusami.in", credentials: true }));
+app.use(
+    cors({
+        origin: ["http://localhost:5173", "https://sakthivelmunusami.in"],
+        credentials: true,
+    }),
+);
 
 const authRouter = require("./routes/auth");
 const profileRouter = require("./routes/profile");
@@ -22,6 +27,9 @@ app.use("/", authRouter);
 app.use("/", profileRouter);
 app.use("/", requestRouter);
 app.use("/", userRouter);
+
+const nseRouter = require("./routes/nseTicker");
+app.use("/", nseRouter);
 
 connectDB()
     .then((res) => {
