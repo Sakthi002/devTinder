@@ -34,3 +34,5 @@ connectDB()
     .catch((e) => {
         console.error("Error::Not connected to Database");
     });
+
+require("./utils/cronJobs");
