@@ -15,7 +15,6 @@ authRouter.post("/signup", async (req, res) => {
         const { firstName, lastName, emailId, password } = req.body;
 
         const hashPassword = await bcrypt.hash(password, 10);
-        console.log(hashPassword);
 
         if (req.body?.skills?.length > 10) {
             throw new Error("Skills more than 10 not allowed");

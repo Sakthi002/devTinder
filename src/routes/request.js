@@ -55,13 +55,13 @@ requestRouter.post(
 
             if (status === "interested") {
                 try {
-                    const res = await sendMail({
+                    const emailRes = await sendMail({
                         to: toUser.emailId,
                         subject: "New connection request on DevTinder",
                         html: `<p><b>${req.user.firstName}</b> is interested in connecting with you on DevTinder.</p>`,
                         text: `${req.user.firstName} is interested in connecting with you on DevTinder.`,
                     });
-                    console.log(res, "email");
+                    console.log("Email sent:", emailRes); // { id: '...' }
                 } catch (err) {
                     console.error("Email failed:", err.name, err.message);
                 }
@@ -71,8 +71,8 @@ requestRouter.post(
                 message: "Connection request sent",
                 data: connectionRequest,
             });
-        } catch (e) {
-            res.status(400).send("ERROR : " + e.message);
+        } catch (err) {
+            res.status(500).json({ message: `ERROR : ${err.message}` });
         }
     },
 );
