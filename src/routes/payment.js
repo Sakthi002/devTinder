@@ -1,9 +1,7 @@
 const express = require("express");
-
 const paymentRouter = express.Router();
 
 const { userAuth } = require("../middlewares/auth");
-
 const razorpayInstance = require("../utils/razorpay");
 const { membershipAmount } = require("../utils/constants");
 const Payment = require("../models/payment");
@@ -15,20 +13,19 @@ const {
 paymentRouter.post("/payment/create", userAuth, async (req, res) => {
     try {
         const { membershipType } = req.body;
+
+        if (!membershipAmount[membershipType]) {
+            return res.status(400).json({ message: "Invalid membership type" });
+        }
+
         const { firstName, lastName, emailId } = req.user;
+
         const order = await razorpayInstance.orders.create({
             amount: membershipAmount[membershipType] * 100,
             currency: "INR",
-            receipt: "receipt#1",
-            notes: {
-                firstName,
-                lastName,
-                emailId,
-                membershipType: membershipType,
-            },
+            receipt: `receipt_${Date.now()}`,
+            notes: { firstName, lastName, emailId, membershipType },
         });
-
-        console.log(order);
 
         const payment = new Payment({
             userId: req.user._id,
@@ -54,46 +51,82 @@ paymentRouter.post("/payment/create", userAuth, async (req, res) => {
 
 paymentRouter.post("/payment/webhook", async (req, res) => {
     try {
-        const webhookSignature = req.get("X-Razorpay-Signature");
-        console.log(webhookSignature, "webhookSignature");
+        const signature = req.get("X-Razorpay-Signature");
 
-        const isWebhookValid = validateWebhookSignature(
-            JSON.stringify(req.body),
-            webhookSignature,
+        const isValid = validateWebhookSignature(
+            req.rawBody, // raw body (see app.js change below)
+            signature,
             process.env.RAZORPAY_WEBHOOK_SECRET,
         );
-        console.log(isWebhookValid, "isWebhookValid");
 
-        if (!isWebhookValid) {
+        if (!isValid) {
+            console.error("[webhook] Invalid signature");
             return res
                 .status(400)
                 .json({ message: "Webhook signature not valid!" });
         }
 
-        // Update payment status
-        // Update User to premium
-
+        const event = req.body.event;
         const paymentDetails = req.body.payload.payment.entity;
-        console.log(paymentDetails, "paymentDetails");
+        console.log(
+            "[webhook]",
+            event,
+            paymentDetails.order_id,
+            paymentDetails.status,
+        );
 
+        // 1. Authorized → capture it (Razorpay then sends payment.captured)
+        if (event === "payment.authorized") {
+            try {
+                await razorpayInstance.payments.capture(
+                    paymentDetails.id,
+                    paymentDetails.amount,
+                    paymentDetails.currency,
+                );
+                console.log("[webhook] Captured", paymentDetails.id);
+            } catch (err) {
+                console.error(
+                    "[webhook] Capture failed:",
+                    err.error?.description || err.message,
+                );
+            }
+            return res.status(200).json({ message: "Authorized handled" });
+        }
+
+        // 2. Update the payment record
         const payment = await Payment.findOne({
             orderId: paymentDetails.order_id,
         });
-        payment.status = paymentDetails.status;
+        if (!payment) {
+            console.error(
+                "[webhook] No payment found for",
+                paymentDetails.order_id,
+            );
+            return res
+                .status(200)
+                .json({ message: "Order not found, ignored" });
+        }
 
+        payment.status = paymentDetails.status; // "captured" or "failed"
         await payment.save();
 
-        const user = await User.findById({ _id: payment.userId });
-        user.isPremium = true;
-        user.membershipType = payment.notes.membershipType;
-
-        await user.save();
+        // 3. Only a captured payment makes the user premium
+        if (event === "payment.captured") {
+            const user = await User.findById(payment.userId);
+            if (user) {
+                user.isPremium = true;
+                user.membershipType = payment.notes.membershipType;
+                await user.save();
+                console.log("[webhook] User upgraded:", user._id.toString());
+            }
+        }
 
         return res
             .status(200)
             .json({ message: "Webhook received successfully" });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error("[webhook] Error:", error.message);
+        return res.status(500).json({ message: error.message });
     }
 });
 

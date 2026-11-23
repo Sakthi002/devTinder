@@ -5,7 +5,13 @@ const connectDB = require("./config/database");
 
 const app = express();
 
-app.use(express.json());
+app.use(
+    express.json({
+        verify: (req, res, buf) => {
+            req.rawBody = buf.toString();
+        },
+    }),
+);
 
 const cookieParser = require("cookie-parser");
 app.use(cookieParser());
