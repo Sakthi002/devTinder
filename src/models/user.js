@@ -60,6 +60,11 @@ const userSchema = new Schema(
                 message: (props) => `${props.value} not a valid URL`,
             },
         },
+        isPremium: {
+            type: Boolean,
+            default: false,
+        },
+        membershipType: { type: String },
         skills: {
             type: [String],
         },
